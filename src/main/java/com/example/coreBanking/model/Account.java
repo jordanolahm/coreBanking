@@ -14,5 +14,4 @@ public class Account {
     public String getId() { return id; }
     public BigDecimal getBalance() { return balance; }
     public void setBalance(BigDecimal balance) { this.balance = balance; }
-
 }
