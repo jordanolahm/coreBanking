@@ -8,6 +8,13 @@ public class EventRequest {
     private String destination;
     private BigDecimal amount;
 
+    public EventRequest(String type, String origin, String destination, BigDecimal amount) {
+        this.type = type;
+        this.origin = origin;
+        this.destination = destination;
+        this.amount = amount;
+    }
+
     public String getType() {
         return type;
     }
