@@ -12,6 +12,19 @@ This is a simple RESTFull API for managing account balances using Spring Boot. I
   - Withdrawal: Deducts funds from an existing account. If the account lacks sufficient balance or does not exist, the operation fails.
   - Transfer: Moves funds from an origin account to a destination account. Both balances are updated simultaneously, or the operation fails if any of the accounts do not exist or have insufficient funds.
 
+## Running 
+
+Project was designed with java spring boot and maven. For run project with maven.
+Granted install all dependencies with maven and java in your machine. 
+
+- Running with dev config settings
+  ```bash
+  mvn clean install
+
+- Running with dev config settings
+  ```bash
+  mvn spring-boot:run -Dspring-boot.run.profiles=dev
+
 ## Server Port
 [http://localhost:8080/api](http://localhost:8080/api)
 
@@ -76,5 +89,5 @@ This is a simple RESTFull API for managing account balances using Spring Boot. I
 ### Notes:
 - This structure was built with [Spring Initializr](https://start.spring.io/).
 - This API was built with Spring Initializr.
-- Java version: 17
-- Project management: Maven
+- Java version: 17 [Java](https://docs.oracle.com/en/java/).
+- Project management: Maven [Maven](https://maven.apache.org/guides/index.html).
