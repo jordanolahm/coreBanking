@@ -8,8 +8,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.math.BigDecimal;
-
 @RestController
 @RequestMapping("/api")
 public class AccountController {
@@ -20,6 +18,7 @@ public class AccountController {
     public AccountController(AccountService accountService) {
         this.accountService = accountService;
     }
+
 
     @GetMapping("/balance")
     public ResponseEntity<BalanceResponse> getBalance(@RequestParam("account_id") String accountId) {

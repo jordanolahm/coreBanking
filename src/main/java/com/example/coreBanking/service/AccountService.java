@@ -8,7 +8,6 @@ import com.example.coreBanking.model.Account;
 import com.example.coreBanking.repository.AccountRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
 import java.math.BigDecimal;
 import java.util.Map;
 
