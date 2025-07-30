@@ -86,6 +86,11 @@ Granted install all dependencies with maven and java in your machine.
   curl -X POST "http://localhost:8080/api/event" -H "Content-Type: application/json" -d '{"type":"transfer", "origin":"200", "amount":15, "destination":"300"}'
 
 
+### Diagram Arquitecture
+This is the diagram for building the next stages of the cloud architecture and the tools that can be used in the sourcing project.
+
+![Diagram arquitecture](corebanking.png)
+
 ### Notes:
 - This structure was built with [Spring Initializr](https://start.spring.io/).
 - This API was built with Spring Initializr.
