@@ -29,6 +29,21 @@ class AccountControllerTest {
     private AccountService accountService;
 
     @Test
+    void testSetOverdraftLimit_Success() throws Exception {
+        String accountId = "12345";
+        BigDecimal limit = BigDecimal.valueOf(500);
+
+        doNothing().when(accountService).configOverdraftLimit(accountId, limit);
+
+        mockMvc.perform(post("/api/overdraft")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"accountId\": \"12345\", \"limit\": 500}"))
+                .andExpect(status().isOk());
+
+        verify(accountService, times(1)).configOverdraftLimit(accountId, limit);
+    }
+
+    @Test
     void testGetBalance_Success() throws Exception {
         String accountId = "12345";
         BigDecimal balance = BigDecimal.valueOf(1000);

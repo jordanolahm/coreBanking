@@ -27,6 +27,12 @@ public class AccountService {
                 .orElseThrow(() -> new AccountNotFoundException("Account not found"));
     }
 
+    public void configOverdraftLimit(String accountId, BigDecimal limit) {
+        Account account = accountRepository.findById(accountId).orElseThrow(() -> new AccountNotFoundException("Account not found"));
+        account.setOverdraftLimit(limit);
+        accountRepository.save(account);
+    }
+
     public Object handleEvent(EventRequest request) {
         return switch (request.getType()) {
             case "deposit" -> handleDeposit(request);
@@ -34,6 +40,10 @@ public class AccountService {
             case "transfer" -> handleTransfer(request);
             default -> throw new IllegalArgumentException("Invalid event type");
         };
+    }
+
+    public void reset() {
+        accountRepository.reset();
     }
 
     private Object handleDeposit(EventRequest request) {
@@ -47,8 +57,10 @@ public class AccountService {
     private Object handleWithdraw(EventRequest request) {
         Account account = accountRepository.findById(request.getOrigin())
                 .orElseThrow(() -> new AccountNotFoundException("Account not found"));
-        if (account.getBalance().compareTo(request.getAmount()) < 0) {
-            throw new InsufficientFundsException("Insufficient funds");
+
+        BigDecimal foundsWithOverdraft = account.getBalance().add(account.getOverdraftLimit());
+        if (foundsWithOverdraft.compareTo(request.getAmount()) < 0) {
+            throw new InsufficientFundsException("Insufficient funds, including overdraft");
         }
         account.setBalance(account.getBalance().subtract(request.getAmount()));
         accountRepository.save(account);
@@ -60,9 +72,9 @@ public class AccountService {
                 .orElseThrow(() -> new AccountNotFoundException("Origin account not found"));
         Account destination = accountRepository.findById(request.getDestination())
                 .orElseGet(() -> new Account(request.getDestination(), BigDecimal.ZERO));
-
-        if (origin.getBalance().compareTo(request.getAmount()) < 0) {
-            throw new InsufficientFundsException("Insufficient funds");
+        BigDecimal founds = origin.getBalance().add(origin.getOverdraftLimit());
+        if (founds.compareTo(request.getAmount()) < 0) {
+            throw new InsufficientFundsException("Insufficient funds, including overdraft");
         }
 
         origin.setBalance(origin.getBalance().subtract(request.getAmount()));
@@ -72,9 +84,5 @@ public class AccountService {
         accountRepository.save(destination);
 
         return Map.of("origin", origin, "destination", destination);
-    }
-
-    public void reset() {
-        accountRepository.reset();
     }
 }
