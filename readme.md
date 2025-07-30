@@ -89,7 +89,7 @@ Granted install all dependencies with maven and java in your machine.
 ### Diagram Arquitecture
 This is the diagram for building the next stages of the cloud architecture and the tools that can be used in the sourcing project.
 
-![Diagram arquitecture](corebanking.png)
+![Diagram architecture](corebanking.png)
 
 ### Notes:
 - This structure was built with [Spring Initializr](https://start.spring.io/).
