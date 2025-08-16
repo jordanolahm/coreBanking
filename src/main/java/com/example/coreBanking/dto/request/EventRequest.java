@@ -1,4 +1,4 @@
-package com.example.coreBanking.dto;
+package com.example.coreBanking.dto.request;
 
 import java.math.BigDecimal;
 

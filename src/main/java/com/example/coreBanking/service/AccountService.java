@@ -1,24 +1,49 @@
 package com.example.coreBanking.service;
 
-import com.example.coreBanking.dto.BalanceResponse;
-import com.example.coreBanking.dto.EventRequest;
-import com.example.coreBanking.exception.AccountNotFoundException;
-import com.example.coreBanking.exception.InsufficientFundsException;
+import com.example.coreBanking.dto.response.AccountResponse;
+import com.example.coreBanking.dto.response.BalanceResponse;
+import com.example.coreBanking.exception.*;
 import com.example.coreBanking.model.Account;
 import com.example.coreBanking.repository.AccountRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class AccountService {
 
     private final AccountRepository accountRepository;
+    private final Map<String, String> documentToAccount = new ConcurrentHashMap<>();
 
     @Autowired
     public AccountService(AccountRepository accountRepository) {
         this.accountRepository = accountRepository;
+    }
+
+    public AccountResponse createAccount(String documentNumber) {
+        if (documentToAccount.containsKey(documentNumber)) {
+            throw new AccountAlreadyExistException("Document already has an account");
+        }
+        String accountId = UUID.randomUUID().toString();
+        Account account = new Account(accountId, BigDecimal.ZERO);
+        accountRepository.save(account);
+        documentToAccount.put(documentNumber, accountId);
+        return new AccountResponse(accountId, documentNumber);
+    }
+
+    public AccountResponse getAccount(String accountId) {
+        Account account = accountRepository.findById(accountId)
+                .orElseThrow(() -> new AccountNotFoundException("Account not found"));
+
+        String document = documentToAccount.entrySet().stream()
+                .filter(e -> e.getValue().equals(accountId))
+                .map(Map.Entry::getKey)
+                .findFirst()
+                .orElse("UNKNOWN");
+        return new AccountResponse(account.getId(), document);
     }
 
     public BalanceResponse getBalance(String accountId) {
@@ -27,62 +52,14 @@ public class AccountService {
                 .orElseThrow(() -> new AccountNotFoundException("Account not found"));
     }
 
+    public void reset() {
+        accountRepository.reset();
+    }
+
     public void configOverdraftLimit(String accountId, BigDecimal limit) {
         Account account = accountRepository.findById(accountId).orElseThrow(() -> new AccountNotFoundException("Account not found"));
         account.setOverdraftLimit(limit);
         accountRepository.save(account);
     }
 
-    public Object handleEvent(EventRequest request) {
-        return switch (request.getType()) {
-            case "deposit" -> handleDeposit(request);
-            case "withdraw" -> handleWithdraw(request);
-            case "transfer" -> handleTransfer(request);
-            default -> throw new IllegalArgumentException("Invalid event type");
-        };
-    }
-
-    public void reset() {
-        accountRepository.reset();
-    }
-
-    private Object handleDeposit(EventRequest request) {
-        Account account = accountRepository.findById(request.getDestination())
-                .orElseGet(() -> new Account(request.getDestination(), BigDecimal.ZERO));
-        account.setBalance(account.getBalance().add(request.getAmount()));
-        accountRepository.save(account);
-        return Map.of("destination", account);
-    }
-
-    private Object handleWithdraw(EventRequest request) {
-        Account account = accountRepository.findById(request.getOrigin())
-                .orElseThrow(() -> new AccountNotFoundException("Account not found"));
-
-        BigDecimal foundsWithOverdraft = account.getBalance().add(account.getOverdraftLimit());
-        if (foundsWithOverdraft.compareTo(request.getAmount()) < 0) {
-            throw new InsufficientFundsException("Insufficient funds, including overdraft");
-        }
-        account.setBalance(account.getBalance().subtract(request.getAmount()));
-        accountRepository.save(account);
-        return Map.of("origin", account);
-    }
-
-    private Object handleTransfer(EventRequest request) {
-        Account origin = accountRepository.findById(request.getOrigin())
-                .orElseThrow(() -> new AccountNotFoundException("Origin account not found"));
-        Account destination = accountRepository.findById(request.getDestination())
-                .orElseGet(() -> new Account(request.getDestination(), BigDecimal.ZERO));
-        BigDecimal founds = origin.getBalance().add(origin.getOverdraftLimit());
-        if (founds.compareTo(request.getAmount()) < 0) {
-            throw new InsufficientFundsException("Insufficient funds, including overdraft");
-        }
-
-        origin.setBalance(origin.getBalance().subtract(request.getAmount()));
-        destination.setBalance(destination.getBalance().add(request.getAmount()));
-
-        accountRepository.save(origin);
-        accountRepository.save(destination);
-
-        return Map.of("origin", origin, "destination", destination);
-    }
 }

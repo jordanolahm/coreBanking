@@ -1,8 +1,8 @@
 package com.example.coreBanking;
 
 import com.example.coreBanking.controller.AccountController;
-import com.example.coreBanking.dto.BalanceResponse;
-import com.example.coreBanking.dto.EventRequest;
+import com.example.coreBanking.dto.response.BalanceResponse;
+import com.example.coreBanking.dto.request.EventRequest;
 import com.example.coreBanking.service.AccountService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
