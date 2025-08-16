@@ -63,4 +63,56 @@ public class GlobalExceptionHandler {
 
         return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
     }
+
+    @ExceptionHandler(AccountAlreadyExistException.class)
+    public ResponseEntity<Map<String, Object>> handleAccountAlreadyExistException(
+            AccountAlreadyExistException ex, WebRequest request) {
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("status", HttpStatus.BAD_REQUEST.value());
+        response.put("error", "Account Already Exists");
+        response.put("message", ex.getMessage());
+        response.put("path", request.getDescription(false));
+
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(TransactionNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleTransactionNotFoundException(
+            TransactionNotFoundException ex, WebRequest request) {
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("status", HttpStatus.NOT_FOUND.value());
+        response.put("error", "Transaction Not Found");
+        response.put("message", ex.getMessage());
+        response.put("path", request.getDescription(false));
+
+        return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(OperationTypeDoesntExistException.class)
+    public ResponseEntity<Map<String, Object>> handleOperationTypeDoesntExistException(
+            OperationTypeDoesntExistException ex, WebRequest request) {
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("status", HttpStatus.BAD_REQUEST.value());
+        response.put("error", "Operation Type Doesn't Exist");
+        response.put("message", ex.getMessage());
+        response.put("path", request.getDescription(false));
+
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(DateTimeFormatException.class)
+    public ResponseEntity<Map<String, Object>> handleDateTimeFormatException(
+            DateTimeFormatException ex, WebRequest request) {
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("status", HttpStatus.BAD_REQUEST.value());
+        response.put("error", "Invalid Date Format");
+        response.put("message", ex.getMessage());
+        response.put("path", request.getDescription(false));
+
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+    }
 }

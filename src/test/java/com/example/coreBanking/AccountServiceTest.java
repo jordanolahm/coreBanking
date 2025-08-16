@@ -1,16 +1,15 @@
 package com.example.coreBanking;
 
-import com.example.coreBanking.dto.BalanceResponse;
-import com.example.coreBanking.dto.EventRequest;
+import com.example.coreBanking.dto.response.BalanceResponse;
+import com.example.coreBanking.dto.request.EventRequest;
 import com.example.coreBanking.exception.AccountNotFoundException;
 import com.example.coreBanking.exception.InsufficientFundsException;
 import com.example.coreBanking.model.Account;
 import com.example.coreBanking.repository.AccountRepository;
+import com.example.coreBanking.repository.TransactionRepository;
 import com.example.coreBanking.service.AccountService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Mockito;
 
 import java.math.BigDecimal;
 import java.util.Map;
@@ -22,6 +21,7 @@ import static org.mockito.Mockito.*;
 class AccountServiceTest {
 
     private AccountRepository accountRepository;
+    private TransactionRepository transactionRepository;
     private AccountService accountService;
 
     @BeforeEach

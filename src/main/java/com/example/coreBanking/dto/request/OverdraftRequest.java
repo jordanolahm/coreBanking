@@ -1,10 +1,15 @@
-package com.example.coreBanking.dto;
+package com.example.coreBanking.dto.request;
 
 import java.math.BigDecimal;
 
 public class OverdraftRequest {
     private String accountId;
     private BigDecimal limit;
+
+    public OverdraftRequest(String accountId, BigDecimal limit) {
+        this.accountId = accountId;
+        this.limit = limit;
+    }
 
     public String getAccountId() {
         return accountId;
