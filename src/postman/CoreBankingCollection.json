@@ -1,0 +1,233 @@
+{
+  "info": {
+    "name": "Core Banking Collection",
+    "_postman_id": "bank-api-collection",
+    "description": "Collection completa para testar todos os endpoints de Account e Transaction",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Accounts",
+      "item": [
+        {
+          "name": "Get Account by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/api/accounts/{{accountId}}",
+              "host": ["http://localhost:8080"],
+              "path": ["api", "accounts", "{{accountId}}"]
+            }
+          },
+          "response": [
+            {
+              "name": "Sample Response",
+              "body": "{\n  \"accountId\": \"123\",\n  \"documentNumber\": \"12345678900\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Balance",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/api/accounts/balance?account_id={{accountId}}",
+              "host": ["http://localhost:8080"],
+              "path": ["api", "accounts", "balance"],
+              "query": [
+                {"key": "account_id", "value": "{{accountId}}"}
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Sample Response",
+              "body": "{\n  \"balance\": 1500.00\n}"
+            }
+          ]
+        },
+        {
+          "name": "Create Account",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type","value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"documentNumber\": \"12345678900\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/accounts",
+              "host": ["http://localhost:8080"],
+              "path": ["api","accounts"]
+            }
+          },
+          "response": [
+            {
+              "name": "Sample Response",
+              "body": "{\n  \"accountId\": \"123\",\n  \"documentNumber\": \"12345678900\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Set Overdraft",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type","value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountId\": \"123\",\n  \"limit\": 500.00\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/accounts/overdraft",
+              "host": ["http://localhost:8080"],
+              "path": ["api","accounts","overdraft"]
+            }
+          },
+          "response": [
+            {"name": "Sample Response","body": "{}"}
+          ]
+        },
+        {
+          "name": "Reset Accounts",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/api/accounts/reset",
+              "host": ["http://localhost:8080"],
+              "path": ["api","accounts","reset"]
+            }
+          },
+          "response": [{"name":"Sample Response","body":"{}"}]
+        }
+      ]
+    },
+    {
+      "name": "Transactions",
+      "item": [
+        {
+          "name": "Create Transaction",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type","value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountId\": \"123\",\n  \"operationTypeId\": 1,\n  \"amount\": 100.00\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/transactions",
+              "host": ["http://localhost:8080"],
+              "path": ["api","transactions"]
+            }
+          },
+          "response": [
+            {
+              "name": "Sample Response",
+              "body": "{\n  \"transactionId\": 1,\n  \"accountId\": \"123\",\n  \"operationTypeId\": 1,\n  \"amount\": -100.00,\n  \"eventDate\": \"2025-08-16T14:00:00\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Handle Transaction Event",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type","value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"deposit\",\n  \"destination\": \"123\",\n  \"amount\": 50.00\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/transactions/event",
+              "host": ["http://localhost:8080"],
+              "path": ["api","transactions","event"]
+            }
+          },
+          "response": [
+            {
+              "name": "Sample Response",
+              "body": "{\n  \"destination\": {\n    \"id\": \"123\",\n    \"balance\": 1550.00\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Transaction by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/api/transactions/{{transactionId}}",
+              "host": ["http://localhost:8080"],
+              "path": ["api","transactions","{{transactionId}}"]
+            }
+          },
+          "response": [
+            {
+              "name": "Sample Response",
+              "body": "{\n  \"transactionId\": 1,\n  \"accountId\": \"123\",\n  \"operationTypeId\": 1,\n  \"amount\": -100.00,\n  \"eventDate\": \"2025-08-16T14:00:00\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Transactions Today",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/api/transactions/today",
+              "host": ["http://localhost:8080"],
+              "path": ["api","transactions","today"]
+            }
+          },
+          "response": [
+            {
+              "name": "Sample Response",
+              "body": "[\n  {\n    \"transactionId\": 1,\n    \"accountId\": \"123\",\n    \"operationTypeId\": 1,\n    \"amount\": -100.00,\n    \"eventDate\": \"2025-08-16T14:00:00\"\n  }\n]"
+            }
+          ]
+        },
+        {
+          "name": "Get Transactions in Range",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/api/transactions/range?begin=2025-08-16T00:00:00&end=2025-08-16T23:59:59",
+              "host": ["http://localhost:8080"],
+              "path": ["api","transactions","range"],
+              "query": [
+                {"key":"begin","value":"2025-08-16T00:00:00"},
+                {"key":"end","value":"2025-08-16T23:59:59"}
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Sample Response",
+              "body": "[\n  {\n    \"transactionId\": 1,\n    \"accountId\": \"123\",\n    \"operationTypeId\": 1,\n    \"amount\": -100.00,\n    \"eventDate\": \"2025-08-16T14:00:00\"\n  }\n]"
+            }
+          ]
+        },
+        {
+          "name": "Get Transactions by Type",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/api/transactions/type/1",
+              "host": ["http://localhost:8080"],
+              "path": ["api","transactions","type","1"]
+            }
+          },
+          "response": [
+            {
+              "name": "Sample Response",
+              "body": "[\n  {\n    \"transactionId\": 1,\n    \"accountId\": \"123\",\n    \"operationTypeId\": 1,\n    \"amount\": -100.00,\n    \"eventDate\": \"2025-08-16T14:00:00\"\n  }\n]"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
