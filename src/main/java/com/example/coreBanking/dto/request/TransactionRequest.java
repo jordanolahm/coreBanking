@@ -12,6 +12,11 @@ public class TransactionRequest {
         this.operationTypeId = operationTypeId;
         this.amount = amount;
     }
+
+    public TransactionRequest() {
+
+    }
+
     public String getAccountId() { return accountId; }
     public void setAccountId(String accountId) { this.accountId = accountId; }
 

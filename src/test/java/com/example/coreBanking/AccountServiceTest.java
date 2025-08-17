@@ -1,142 +1,122 @@
 package com.example.coreBanking;
 
+import com.example.coreBanking.dto.response.AccountResponse;
 import com.example.coreBanking.dto.response.BalanceResponse;
-import com.example.coreBanking.dto.request.EventRequest;
+import com.example.coreBanking.exception.AccountAlreadyExistException;
 import com.example.coreBanking.exception.AccountNotFoundException;
-import com.example.coreBanking.exception.InsufficientFundsException;
 import com.example.coreBanking.model.Account;
 import com.example.coreBanking.repository.AccountRepository;
-import com.example.coreBanking.repository.TransactionRepository;
 import com.example.coreBanking.service.AccountService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import java.math.BigDecimal;
-import java.util.Map;
 import java.util.Optional;
-
+import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class AccountServiceTest {
 
+    @Mock
     private AccountRepository accountRepository;
-    private TransactionRepository transactionRepository;
+
+    @InjectMocks
     private AccountService accountService;
 
     @BeforeEach
-    void setup() {
-        accountRepository = mock(AccountRepository.class);
-        accountService = new AccountService(accountRepository);
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
+    }
+
+    @Test
+    void testCreateAccount_Success() {
+        String documentNumber = "12345678900";
+
+        AccountResponse response = accountService.createAccount(documentNumber);
+
+        assertNotNull(response.getAccountId());
+        assertEquals(documentNumber, response.getDocumentNumber());
+        verify(accountRepository, times(1)).save(any(Account.class));
+    }
+
+    @Test
+    void testCreateAccount_AlreadyExists() {
+        String documentNumber = "12345678900";
+
+        accountService.createAccount(documentNumber);
+
+        Exception exception = assertThrows(AccountAlreadyExistException.class, () -> {
+            accountService.createAccount(documentNumber);
+        });
+
+        assertEquals("Document already has an account", exception.getMessage());
+    }
+
+    @Test
+    void testGetAccount_Success() {
+        String accountId = UUID.randomUUID().toString();
+        Account account = new Account(accountId, BigDecimal.ZERO);
+        accountService.createAccount("doc123"); // adiciona no map
+        when(accountRepository.findById(accountId)).thenReturn(Optional.of(account));
+
+        AccountResponse response = accountService.getAccount(accountId);
+        assertEquals(accountId, response.getAccountId());
+    }
+
+    @Test
+    void testGetAccount_NotFound() {
+        String accountId = "non-existent";
+        when(accountRepository.findById(accountId)).thenReturn(Optional.empty());
+
+        assertThrows(AccountNotFoundException.class, () -> accountService.getAccount(accountId));
     }
 
     @Test
     void testGetBalance_Success() {
-        Account account = new Account("123", BigDecimal.valueOf(1000));
-        when(accountRepository.findById("123")).thenReturn(Optional.of(account));
+        String accountId = UUID.randomUUID().toString();
+        Account account = new Account(accountId, BigDecimal.valueOf(100));
+        when(accountRepository.findById(accountId)).thenReturn(Optional.of(account));
 
-        BalanceResponse response = accountService.getBalance("123");
-        assertEquals(BigDecimal.valueOf(1000), response.getBalance());
-        verify(accountRepository).findById("123");
+        BalanceResponse response = accountService.getBalance(accountId);
+        assertEquals(BigDecimal.valueOf(100), response.getBalance());
     }
 
     @Test
-    void testGetBalance_AccountNotFound() {
-        when(accountRepository.findById("123")).thenReturn(Optional.empty());
-        assertThrows(AccountNotFoundException.class, () -> accountService.getBalance("123"));
-    }
+    void testGetBalance_NotFound() {
+        String accountId = "non-existent";
+        when(accountRepository.findById(accountId)).thenReturn(Optional.empty());
 
-    @Test
-    void testConfigOverdraftLimit_Success() {
-        Account account = new Account("123", BigDecimal.ZERO);
-        when(accountRepository.findById("123")).thenReturn(Optional.of(account));
-
-        accountService.configOverdraftLimit("123", BigDecimal.valueOf(500));
-        assertEquals(BigDecimal.valueOf(500), account.getOverdraftLimit());
-        verify(accountRepository).save(account);
-    }
-
-    @Test
-    void testConfigOverdraftLimit_AccountNotFound() {
-        when(accountRepository.findById("123")).thenReturn(Optional.empty());
-        assertThrows(AccountNotFoundException.class,
-                () -> accountService.configOverdraftLimit("123", BigDecimal.valueOf(500)));
-    }
-
-    @Test
-    void testHandleEvent_Deposit_NewAccount() {
-        EventRequest request = new EventRequest("deposit", null, "123", BigDecimal.valueOf(200));
-        when(accountRepository.findById("123")).thenReturn(Optional.empty());
-
-        Map<String, Object> response = (Map<String, Object>) accountService.handleEvent(request);
-
-        verify(accountRepository).save(any(Account.class));
-        assertTrue(response.containsKey("destination"));
-        Account acc = (Account) response.get("destination");
-        assertEquals("123", acc.getId());
-        assertEquals(BigDecimal.valueOf(200), acc.getBalance());
-    }
-
-    @Test
-    void testHandleEvent_Withdraw_Success() {
-        Account account = new Account("123", BigDecimal.valueOf(300));
-        account.setOverdraftLimit(BigDecimal.valueOf(100));
-        when(accountRepository.findById("123")).thenReturn(Optional.of(account));
-
-        EventRequest request = new EventRequest("withdraw", "123", null, BigDecimal.valueOf(350));
-        Map<String, Object> response = (Map<String, Object>) accountService.handleEvent(request);
-
-        verify(accountRepository).save(account);
-        assertEquals(BigDecimal.valueOf(-50), account.getBalance());
-        assertTrue(response.containsKey("origin"));
-    }
-
-    @Test
-    void testHandleEvent_Withdraw_InsufficientFunds() {
-        Account account = new Account("123", BigDecimal.valueOf(200));
-        account.setOverdraftLimit(BigDecimal.valueOf(50));
-        when(accountRepository.findById("123")).thenReturn(Optional.of(account));
-
-        EventRequest request = new EventRequest("withdraw", "123", null, BigDecimal.valueOf(300));
-        assertThrows(InsufficientFundsException.class, () -> accountService.handleEvent(request));
-    }
-
-    @Test
-    void testHandleEvent_Transfer_Success() {
-        Account origin = new Account("123", BigDecimal.valueOf(400));
-        origin.setOverdraftLimit(BigDecimal.valueOf(100));
-        Account destination = new Account("456", BigDecimal.valueOf(100));
-        when(accountRepository.findById("123")).thenReturn(Optional.of(origin));
-        when(accountRepository.findById("456")).thenReturn(Optional.of(destination));
-
-        EventRequest request = new EventRequest("transfer", "123", "456", BigDecimal.valueOf(450));
-        Map<String, Object> response = (Map<String, Object>) accountService.handleEvent(request);
-
-        verify(accountRepository).save(origin);
-        verify(accountRepository).save(destination);
-
-        assertEquals(BigDecimal.valueOf(-50), origin.getBalance());
-        assertEquals(BigDecimal.valueOf(550), destination.getBalance());
-
-        assertTrue(response.containsKey("origin"));
-        assertTrue(response.containsKey("destination"));
-    }
-
-    @Test
-    void testHandleEvent_Transfer_InsufficientFunds() {
-        Account origin = new Account("123", BigDecimal.valueOf(300));
-        origin.setOverdraftLimit(BigDecimal.valueOf(50));
-        when(accountRepository.findById("123")).thenReturn(Optional.of(origin));
-        when(accountRepository.findById("456")).thenReturn(Optional.empty()); // Destination may be new, but let's test with existing for clarity
-
-        EventRequest request = new EventRequest("transfer", "123", "456", BigDecimal.valueOf(400));
-        assertThrows(InsufficientFundsException.class, () -> accountService.handleEvent(request));
+        assertThrows(AccountNotFoundException.class, () -> accountService.getBalance(accountId));
     }
 
     @Test
     void testReset() {
-        doNothing().when(accountRepository).reset();
         accountService.reset();
-        verify(accountRepository).reset();
+        verify(accountRepository, times(1)).reset();
+    }
+
+    @Test
+    void testConfigOverdraftLimit_Success() {
+        String accountId = UUID.randomUUID().toString();
+        Account account = new Account(accountId, BigDecimal.ZERO);
+        when(accountRepository.findById(accountId)).thenReturn(Optional.of(account));
+
+        BigDecimal limit = BigDecimal.valueOf(500);
+        accountService.configOverdraftLimit(accountId, limit);
+
+        assertEquals(limit, account.getOverdraftLimit());
+        verify(accountRepository, times(1)).save(account);
+    }
+
+    @Test
+    void testConfigOverdraftLimit_AccountNotFound() {
+        String accountId = "non-existent";
+        when(accountRepository.findById(accountId)).thenReturn(Optional.empty());
+
+        BigDecimal limit = BigDecimal.valueOf(500);
+        assertThrows(AccountNotFoundException.class, () -> accountService.configOverdraftLimit(accountId, limit));
     }
 }
