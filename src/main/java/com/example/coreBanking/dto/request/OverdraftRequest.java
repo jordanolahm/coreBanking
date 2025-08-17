@@ -11,6 +11,10 @@ public class OverdraftRequest {
         this.limit = limit;
     }
 
+    public OverdraftRequest() {
+
+    }
+
     public String getAccountId() {
         return accountId;
     }

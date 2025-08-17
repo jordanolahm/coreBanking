@@ -15,6 +15,10 @@ public class EventRequest {
         this.amount = amount;
     }
 
+    public EventRequest() {
+
+    }
+
     public String getType() {
         return type;
     }
