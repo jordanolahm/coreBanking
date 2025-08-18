@@ -17,6 +17,27 @@ A RESTful API built with Spring Boot for managing accounts, balances, and financ
 
 > Transfer: Moves funds from one account to another, updating both balances atomically. Fails if insufficient funds or account missing.
 
+> Each cardholder (customer) has an account with their details.
+
+> For each operation performed by the customer, a transaction is created and associated with their
+  respective account.
+
+> Each transaction has a specific type (normal purchase, withdrawal, credit voucher, or installment purchase).
+
+> Purchase and withdrawal transactions are recorded with negative values.
+
+> Credit voucher transactions are recorded with positive values.
+
+
+Types of transactions:
+
+1 Normal purchase
+2 Installment purchase
+3 Withdrawal
+4 Credit voucher
+
+Translated with DeepL.com (free version)
+
 ## Configuration 
 
 Project was designed with java spring boot and maven. For run project with maven.
@@ -175,6 +196,12 @@ Granted install all dependencies with maven and java in your machine.
 This is the diagram for building the next stages of the cloud architecture and the tools that can be used in the sourcing project.
 
 ![Diagram architecture](corebanking.png)
+
+
+### Scheme logic simple
+This diagram is simple for relating business rules.
+
+![Scheme Logic](scheme.png)
 
 ### Notes:
 - This structure was built with [Spring Initializr](https://start.spring.io/).
