@@ -69,7 +69,7 @@ class TransactionControllerTest {
     @Test
     void testHandleTransactionEvent() throws Exception {
         EventRequest request = new EventRequest();
-        request.setType("deposit");
+        request.setType(EventRequest.EventType.DEPOSIT);
         request.setDestination("account-123");
         request.setAmount(BigDecimal.valueOf(100));
 

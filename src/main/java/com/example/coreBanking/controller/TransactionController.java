@@ -31,6 +31,7 @@ public class TransactionController {
 
     @PostMapping("/event")
     public ResponseEntity<?> handleTransactionEvent(@RequestBody EventRequest request) {
+        System.out.println(request.getType());
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(transactionService.handleTransaction(request));
     }

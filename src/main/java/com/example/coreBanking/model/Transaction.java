@@ -5,7 +5,7 @@ import java.time.LocalDateTime;
 
 public class Transaction {
 
-    private static long counter = '0';
+    private static long counter = 0;
 
     private long transactionId;
     private String accountId;
