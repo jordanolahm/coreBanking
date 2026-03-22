@@ -164,14 +164,17 @@ Granted install all dependencies with maven and java in your machine.
 
 ### Abstract Arquitecture to engage high performance
 This is the diagram for building the next stages of the cloud architecture and the tools that can be used in the sourcing project.
-
 ![Diagram architecture](abstraction.png)
 
 
-### Scheme logic simple
+### Scheme logic simple - Model View controllers object
 This diagram is simple for relating business rules.
-
 ![Scheme Logic](low_architecture.png)
+
+### Scheme contains basic elements architecture - Event driven Microservices
+This diagram outlines the basic rules for tracing request messages utilizing JSON over HTTP 1.0
+![Basic Element](basic_elements_architecture.png)
+
 
 ### Notes:
 - This structure was built with [Spring Initializr](https://start.spring.io/).
