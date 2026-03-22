@@ -1,47 +1,21 @@
 # Core Banking API
-
 A RESTful API built with Spring Boot for managing accounts, balances, and financial transactions. Supports creating accounts, querying balances, and handling deposits, withdrawals, and transfers.
-
-### Key features
-> State Reset: Resets all accounts and transactions to the initial state.
-
-> Account Management: Create accounts, configure overdraft limits  and retrieve account information.
-
-> Balance Inquiry: Retrieve the current balance of a specific account.
-
-> Event Operations: Single endpoint to handle three types of financial events:
-
-> Deposit: Adds funds to an account. Automatically creates the account if it doesn’t exist.
-
-> Withdrawal: Deducts funds from an existing account. Fails if insufficient balance or account doesn’t exist.
-
-> Transfer: Moves funds from one account to another, updating both balances atomically. Fails if insufficient funds or account missing.
-
-> Each cardholder (customer) has an account with their details.
-
-> For each operation performed by the customer, a transaction is created and associated with their
-  respective account.
-
-> Each transaction has a specific type (normal purchase, withdrawal, credit voucher, or installment purchase).
-
-> Purchase and withdrawal transactions are recorded with negative values.
-
-> Credit voucher transactions are recorded with positive values.
-
-
-Types of transactions:
-
-1 Normal purchase
-2 Installment purchase
-3 Withdrawal
-4 Credit voucher
-
-Translated with DeepL.com (free version)
 
 ## Configuration 
 
 Project was designed with java spring boot and maven. For run project with maven.
 Granted install all dependencies with maven and java in your machine. 
+
+### Principal core engineering
+- Create account if it doest exist.
+- Increase balance
+- Validate balance + overdraft
+- Decrease balance
+- Validate Origin balance
+- Debit Origin
+- Credit destination
+- Exception handling: monitoring error
+- Checking data entry
 
 - Running with dev config settings
   ```bash
@@ -54,10 +28,17 @@ Granted install all dependencies with maven and java in your machine.
 ## Server Port
 [http://localhost:8080/api](http://localhost:8080/api)
 
-## New order of endpoints
+## Basic Architecture
 
-> endpoint to request account: /api/accounts
-> endpoint to request transaction: /api/transactions
+**Controller → Service → Repository → Model** 
+
+> Event-driven transactions (DEPOSIT, WITHDRAW, TRANSFER) 
+
+> Separation of concerns
+
+> Stateless REST API
+
+> In-memory data storage (Hash structure, list map)
 
 ## Endpoints to test
 
@@ -118,53 +99,6 @@ Granted install all dependencies with maven and java in your machine.
   -H "Content-Type: application/json" \
   -d '{"accountId":"ACCOUNT_ID","operationTypeId":4,"amount":100}'
 
-### Handle Event
-- **Method:** `POST`
-- **Endpoint:** `/api/transactions/event`
-- **Description:** Handles deposit, withdrawal, or transfer events for accounts. Need complete body to request.
-- **Parameters:** 
-    #### type (String) specifies the type of event.
-    #### destination (String) the id of account.
-    #### origin (String) the identifyer o account from which the withdraw or transfer funds.
-    #### amounts (BigDecimal) the amout to be transacted - transaction amount.
-
-- **Deposit to new Account:**
-  ```bash
-  curl -X POST "http://localhost:8080/api/transactions/event" -H "Content-Type: application/json" -d '{"type":"deposit", "destination":"100", "amount":10}'
-
-- **Deposit to Existing Account:**
-  ```bash
-  curl -X POST "http://localhost:8080/api/transactions/event" -H "Content-Type: application/json" -d '{"type":"deposit", "destination":"100", "amount":10}'
-
-- **Withdraw from Non-Existing Account:**
-  ```bash
-  curl -X POST "http://localhost:8080/api/transactions/event" -H "Content-Type: application/json" -d '{"type":"withdraw", "origin":"200", "amount":10}'
-
-- **Withdraw from Existing Account:**
-  ```bash
-  curl -X POST "http://localhost:8080/api/transactions/event" -H "Content-Type: application/json" -d '{"type":"withdraw", "origin":"100", "amount":5}'
-
-- **Withdraw from Existing Account:**
-  ```bash
-  curl -X POST "http://localhost:8080/api/transactions/event" -H "Content-Type: application/json" -d '{"type":"withdraw", "origin":"100", "amount":5}'
-
-- **Transfer from Existing Account:**
-  ```bash
-  curl -X POST "http://localhost:8080/api/transactions/event" -H "Content-Type: application/json" -d '{"type":"transfer", "origin":"100", "amount":15, "destination":"300"}'
-
-- **Transfer from Non-Existing Account:**
-  ```bash
-  curl -X POST "http://localhost:8080/api/transactions/event" -H "Content-Type: application/json" -d '{"type":"transfer", "origin":"200", "amount":15, "destination":"300"}'
-
-
-### Get Transaction by identifier
-- **Method:** `GET`
-- **Endpoint:** `/api/transactions/{transactionId}`
-- **Description:** Find transaction by id.
-- **Request Example:**
-  ```bash
-  curl -X GET "http://localhost:8080/api/transactions/48"
-
 ### Get Transactions by day
 - **Method:** `GET`
 - **Endpoint:** `/api/transactions/today`
@@ -183,28 +117,65 @@ Granted install all dependencies with maven and java in your machine.
   ```bash
   curl -X GET "http://localhost:8080/api/transactions/range?begin=2025-08-16T00:00:00&end=2025-08-16T23:59:59"
 
-### Get Transactions by type
-- **Method:** `GET`
-- **Endpoint:** `/api/transactions/type/{operationTypeId}`
-- **Description:** Find transactions operation type ID (1-4).
+
+### Withdraw
+- **Method:** `POST`
+- **Endpoint:** `/api/transactions/event`
+- **Description:** Withdraw money from an account, considering balance + overdraft.
 - **Request Example:**
   ```bash
-  curl -X GET "http://localhost:8080/api/transactions/type/4"
+  curl -X POST http://localhost:8080/api/transactions/event \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type": "WITHDRAW",
+    "origin": "100",
+    "amount": 50
+  }'
+  
+### Transfer
+- **Method:** `POST`
+- **Endpoint:** `/api/transactions/event`
+- **Description:** Transfer money from one account to another.
+- **Request Example:**
+  ```bash
+  curl -X POST http://localhost:8080/api/transactions/event \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type": "TRANSFER",
+    "origin": "100",
+    "destination": "200",
+    "amount": 30
+}'
+  
 
+### Deposit
+- **Method:** `POST`
+- **Endpoint:** `/api/transactions/event`
+- **Description:** Create a deposit into an account. If the account does not exist, it will be created.
+- **Request Example:**
+  ```bash
+  curl -X POST http://localhost:8080/api/transactions/event \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type": "DEPOSIT",
+    "destination": "100",
+    "amount": 100
+}'
 
-### Diagram Arquitecture
+### Abstract Arquitecture to engage high performance
 This is the diagram for building the next stages of the cloud architecture and the tools that can be used in the sourcing project.
 
-![Diagram architecture](corebanking.png)
+![Diagram architecture](abstraction.png)
 
 
 ### Scheme logic simple
 This diagram is simple for relating business rules.
 
-![Scheme Logic](scheme.png)
+![Scheme Logic](low_architecture.png)
 
 ### Notes:
 - This structure was built with [Spring Initializr](https://start.spring.io/).
-- This API was built with Spring Initializr.
+- This API was built with Spring Initializer.
+- Using JUnit 5 for unit test layer with mockito.
 - Java version: 17 [Java](https://docs.oracle.com/en/java/).
 - Project management: Maven [Maven](https://maven.apache.org/guides/index.html).

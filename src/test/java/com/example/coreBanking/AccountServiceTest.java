@@ -6,13 +6,16 @@ import com.example.coreBanking.exception.AccountAlreadyExistException;
 import com.example.coreBanking.exception.AccountNotFoundException;
 import com.example.coreBanking.model.Account;
 import com.example.coreBanking.repository.AccountRepository;
+import com.example.coreBanking.repository.TransactionRepository;
 import com.example.coreBanking.service.AccountService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import java.lang.reflect.Field;
 import java.math.BigDecimal;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
@@ -22,6 +25,9 @@ class AccountServiceTest {
 
     @Mock
     private AccountRepository accountRepository;
+
+    @Mock
+    TransactionRepository transactionRepository;
 
     @InjectMocks
     private AccountService accountService;
@@ -92,10 +98,32 @@ class AccountServiceTest {
         assertThrows(AccountNotFoundException.class, () -> accountService.getBalance(accountId));
     }
 
+    @BeforeEach
+    void setup() throws Exception {
+        accountRepository = mock(AccountRepository.class);
+        transactionRepository = mock(TransactionRepository.class);
+
+        accountService = new AccountService(accountRepository , transactionRepository);
+
+        Field field = AccountService.class.getDeclaredField("transactionRepository");
+        field.setAccessible(true);
+        field.set(accountService, transactionRepository);
+    }
+
     @Test
-    void testReset() {
+    void shouldResetSystemSuccessfully() throws Exception {
+
+        Field mapField = AccountService.class.getDeclaredField("documentToAccount");
+        mapField.setAccessible(true);
+        Map<String, String> map = (Map<String, String>) mapField.get(accountService);
+        map.put("123", "acc-1");
+
         accountService.reset();
+
         verify(accountRepository, times(1)).reset();
+        verify(transactionRepository, times(1)).reset();
+
+        assert map.isEmpty();
     }
 
     @Test

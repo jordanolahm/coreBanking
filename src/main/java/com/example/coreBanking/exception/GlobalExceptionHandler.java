@@ -2,6 +2,8 @@ package com.example.coreBanking.exception;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageConversionException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.WebRequest;
@@ -111,6 +113,32 @@ public class GlobalExceptionHandler {
         response.put("status", HttpStatus.BAD_REQUEST.value());
         response.put("error", "Invalid Date Format");
         response.put("message", ex.getMessage());
+        response.put("path", request.getDescription(false));
+
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<Map<String, Object>> handleInvalidJson(
+            HttpMessageNotReadableException ex, WebRequest request) {
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("status", HttpStatus.BAD_REQUEST.value());
+        response.put("error", "Malformed JSON");
+        response.put("message", "Invalid request body");
+        response.put("path", request.getDescription(false));
+
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(HttpMessageConversionException.class)
+    public ResponseEntity<Map<String, Object>> handleEnumError(
+            HttpMessageConversionException ex, WebRequest request) {
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("status", HttpStatus.BAD_REQUEST.value());
+        response.put("error", "Invalid Enum Value");
+        response.put("message", "Invalid value for enum field");
         response.put("path", request.getDescription(false));
 
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);

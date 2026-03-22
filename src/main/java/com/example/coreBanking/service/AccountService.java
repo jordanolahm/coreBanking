@@ -5,6 +5,7 @@ import com.example.coreBanking.dto.response.BalanceResponse;
 import com.example.coreBanking.exception.*;
 import com.example.coreBanking.model.Account;
 import com.example.coreBanking.repository.AccountRepository;
+import com.example.coreBanking.repository.TransactionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
@@ -16,11 +17,14 @@ import java.util.concurrent.ConcurrentHashMap;
 public class AccountService {
 
     private final AccountRepository accountRepository;
+    private final TransactionRepository transactionRepository;
+
     private final Map<String, String> documentToAccount = new ConcurrentHashMap<>();
 
     @Autowired
-    public AccountService(AccountRepository accountRepository) {
+    public AccountService(AccountRepository accountRepository, TransactionRepository transactionRepository) {
         this.accountRepository = accountRepository;
+        this.transactionRepository = transactionRepository;
     }
 
     public AccountResponse createAccount(String documentNumber) {
@@ -54,6 +58,8 @@ public class AccountService {
 
     public void reset() {
         accountRepository.reset();
+        transactionRepository.reset();
+        documentToAccount.clear();
     }
 
     public void configOverdraftLimit(String accountId, BigDecimal limit) {

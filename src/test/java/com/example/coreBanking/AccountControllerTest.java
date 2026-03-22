@@ -6,6 +6,7 @@ import com.example.coreBanking.dto.request.OverdraftRequest;
 import com.example.coreBanking.dto.response.AccountResponse;
 import com.example.coreBanking.dto.response.BalanceResponse;
 import com.example.coreBanking.service.AccountService;
+import com.example.coreBanking.service.TransactionService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -16,10 +17,14 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.List;
+
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import com.example.coreBanking.dto.response.TransactionResponse;
 
 @WebMvcTest(AccountController.class)
 class AccountControllerTest {
@@ -29,6 +34,9 @@ class AccountControllerTest {
 
     @MockBean
     private AccountService accountService;
+
+    @MockBean
+    private TransactionService transactionService;
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -93,5 +101,28 @@ class AccountControllerTest {
     void reset_shouldReturnOk() throws Exception {
         mockMvc.perform(post("/api/accounts/reset"))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void shouldReturnTransactionsForAccount() throws Exception {
+
+        String accountId = "abc-123";
+
+        List<TransactionResponse> mockResponse = List.of(
+                new TransactionResponse(1L, accountId, 4, BigDecimal.valueOf(200), LocalDateTime.now()),
+                new TransactionResponse(2L, accountId, 1, BigDecimal.valueOf(-100), LocalDateTime.now())
+        );
+
+        when(transactionService.getTransactionByAccountId(accountId))
+                .thenReturn(mockResponse);
+
+        mockMvc.perform(get("/api/accounts/{accountId}/transactions", accountId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].accountId").value(accountId))
+                .andExpect(jsonPath("$[0].operationTypeId").value(4))
+                .andExpect(jsonPath("$[0].amount").value(200))
+                .andExpect(jsonPath("$[1].operationTypeId").value(1))
+                .andExpect(jsonPath("$[1].amount").value(-100));
     }
 }

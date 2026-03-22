@@ -63,6 +63,13 @@ public class TransactionRepository {
         return listTransactionsInDate;
     }
 
+    public List<Transaction> findByAccountId(String accountId) {
+        if (accountId == null) {
+            throw new IllegalArgumentException("AccountId cannot be null");
+        }
+        return transactions.stream().filter(t -> t.getAccountId().equals(accountId)).toList();
+    }
+
     public List<Transaction> findAll() {
         return transactions;
     }

@@ -33,13 +33,7 @@ public class TransactionService {
                 .orElseThrow(() -> new AccountNotFoundException("Account not found"));
 
         BigDecimal amount = normalizeAmount(request.getOperationTypeId(), request.getAmount());
-        BigDecimal available = account.getBalance().add(account.getOverdraftLimit());
-
-        if (amount.compareTo(BigDecimal.ZERO) < 0 && available.add(amount).compareTo(BigDecimal.ZERO) < 0) {
-            throw new InsufficientFundsException("Insufficient funds for transaction");
-        }
-
-        account.setBalance(account.getBalance().add(amount));
+        applyTransaction(account, amount);
         accountRepository.save(account);
 
         Transaction transactionOnCreate = new Transaction(request.getAccountId(), request.getOperationTypeId(), amount);
@@ -98,20 +92,43 @@ public class TransactionService {
         );
     }
 
+    public List<TransactionResponse> getTransactionByAccountId (String accountId) {
+        accountRepository.findById(accountId).orElseThrow(() -> new AccountNotFoundException("Account not found."));
+        List<Transaction> allTransactions = transactionRepository.findByAccountId(accountId);
+
+        if (allTransactions == null) {
+            return new ArrayList<>();
+        }
+
+        return redirectTransactionResponse(allTransactions);
+    }
+
     public Object handleTransaction(EventRequest request) {
+        if (request.getType() == null) {
+            throw new IllegalArgumentException("Type of transaction is required");
+        }
+
         return switch (request.getType()) {
-            case "deposit" -> handleDeposit(request);
-            case "withdraw" -> handleWithdraw(request);
-            case "transfer" -> handleTransfer(request);
-            default -> throw new IllegalArgumentException("Invalid event type");
+            case DEPOSIT -> handleDeposit(request);
+            case WITHDRAW  -> handleWithdraw(request);
+            case TRANSFER  -> handleTransfer(request);
+            default -> throw new IllegalArgumentException("Invalid event type: " + request.getType());
         };
     }
 
     private Object handleDeposit(EventRequest request) {
         Account account = accountRepository.findById(request.getDestination())
                 .orElseGet(() -> new Account(request.getDestination(), BigDecimal.ZERO));
-        account.setBalance(account.getBalance().add(request.getAmount()));
+        account.deposit(request.getAmount());
         accountRepository.save(account);
+
+        Transaction tx = new Transaction(
+                request.getDestination(),
+                4,
+                request.getAmount()
+        );
+
+        transactionRepository.save(tx);
         return Map.of("destination", account);
     }
 
@@ -124,14 +141,22 @@ public class TransactionService {
             throw new InsufficientFundsException("Insufficient funds, including overdraft");
         }
 
-        account.setBalance(account.getBalance().subtract(request.getAmount()));
+        account.withdraw(request.getAmount());
         accountRepository.save(account);
+
+        Transaction tx = new Transaction(
+                request.getOrigin(),
+                1,
+                request.getAmount().negate()
+        );
+
         return Map.of("origin", account);
     }
 
     private Object handleTransfer(EventRequest request) {
         Account origin = accountRepository.findById(request.getOrigin())
                 .orElseThrow(() -> new AccountNotFoundException("Origin account not found"));
+
         Account destination = accountRepository.findById(request.getDestination())
                 .orElseGet(() -> new Account(request.getDestination(), BigDecimal.ZERO));
 
@@ -140,11 +165,19 @@ public class TransactionService {
             throw new InsufficientFundsException("Insufficient funds, including overdraft");
         }
 
-        origin.setBalance(origin.getBalance().subtract(request.getAmount()));
-        destination.setBalance(destination.getBalance().add(request.getAmount()));
+        origin.withdraw(request.getAmount());
+        destination.deposit(request.getAmount());
 
         accountRepository.save(origin);
         accountRepository.save(destination);
+
+        transactionRepository.save(new Transaction(
+                request.getOrigin(), 1, request.getAmount().negate()
+        ));
+
+        transactionRepository.save(new Transaction(
+                request.getDestination(), 4, request.getAmount()
+        ));
 
         return Map.of("origin", origin, "destination", destination);
     }
@@ -169,5 +202,13 @@ public class TransactionService {
             ));
         }
         return resultSearchList;
+    }
+
+    private void applyTransaction(Account account, BigDecimal amount) {
+        if (amount.compareTo(BigDecimal.ZERO) < 0) {
+            account.withdraw(amount.abs());
+        } else {
+            account.deposit(amount);
+        }
     }
 }
