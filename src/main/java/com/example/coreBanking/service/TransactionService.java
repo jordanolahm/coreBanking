@@ -34,10 +34,15 @@ public class TransactionService {
     }
 
     public EventResponse handleTransaction(EventRequest request) {
-
+   
         if (request.getType() == null) {
             throw new IllegalArgumentException("Transaction type is required");
         }
+/*
+        //if(request.getID() === arrayFiltrado[]) {
+              throw new ExceptionBlock("Id account esta na block list")         
+              break; 
+        } */
 
         return switch (request.getType()) {
             case DEPOSIT -> deposit(request);
