@@ -2,11 +2,11 @@ package com.example.coreBanking.model;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class Transaction {
 
-    private static long counter = 0;
-
+    private static final AtomicLong counter = new AtomicLong();
     private long transactionId;
     private String accountId;
     private int operationTypeId;
@@ -14,7 +14,7 @@ public class Transaction {
     private LocalDateTime eventDate;
 
     public Transaction(String accountId, int operationTypeId, BigDecimal amount) {
-        this.transactionId = counter++;
+        this.transactionId = counter.incrementAndGet();
         this.accountId = accountId;
         this.operationTypeId = operationTypeId;
         this.amount = amount;

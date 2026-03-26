@@ -1,4 +1,6 @@
 package com.example.coreBanking.model;
+import com.example.coreBanking.exception.InsufficientFundsException;
+
 import java.math.BigDecimal;
 
 public class Account {
@@ -35,21 +37,22 @@ public class Account {
         return balance.compareTo(BigDecimal.ZERO) < 0;
     }
 
-    public void withdraw(BigDecimal amount) {
+    public synchronized void withdraw(BigDecimal amount) {
         validateAmount(amount);
 
-        BigDecimal available = getAvailableBalance();
-
-        if (amount.compareTo(available) > 0) {
-            throw new IllegalArgumentException("Insufficient funds (including overdraft)");
+        if (amount.compareTo(getAvailableBalance()) > 0) {
+            throw new InsufficientFundsException("Insufficient funds");
         }
 
         balance = balance.subtract(amount);
     }
-    public void deposit(BigDecimal amount) {
+
+    public synchronized void deposit(BigDecimal amount) {
         validateAmount(amount);
         balance = balance.add(amount);
     }
+
+
     private void validateAmount(BigDecimal amount) {
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("Invalid amount");

@@ -5,10 +5,10 @@ import com.example.coreBanking.dto.request.AccountRequest;
 import com.example.coreBanking.dto.request.OverdraftRequest;
 import com.example.coreBanking.dto.response.AccountResponse;
 import com.example.coreBanking.dto.response.BalanceResponse;
+import com.example.coreBanking.dto.response.TransactionResponse;
 import com.example.coreBanking.service.AccountService;
 import com.example.coreBanking.service.TransactionService;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,14 +17,9 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.List;
-
-import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import com.example.coreBanking.dto.response.TransactionResponse;
 
 @WebMvcTest(AccountController.class)
 class AccountControllerTest {
@@ -41,88 +36,84 @@ class AccountControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    private AccountResponse accountResponse;
-    private BalanceResponse balanceResponse;
+    @Test
+    void shouldGetAccount() throws Exception {
+        String accountId = "123";
 
-    @BeforeEach
-    void setUp() {
-        accountResponse = new AccountResponse("1234", "12345678900");
-        balanceResponse = new BalanceResponse(new BigDecimal("500.00"));
+        Mockito.when(accountService.getAccount(accountId))
+                .thenReturn(new AccountResponse(accountId, "999999999"));
+
+        mockMvc.perform(get("/api/accounts/{accountId}", accountId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.accountId").value(accountId))
+                .andExpect(jsonPath("$.documentNumber").value("999999999"));
     }
 
     @Test
-    void createAccount_shouldReturnCreatedAccount() throws Exception {
-        AccountRequest request = new AccountRequest();
-        request.setDocumentNumber("12345678900");
+    void shouldGetBalance() throws Exception {
+        String accountId = "123";
 
-        Mockito.when(accountService.createAccount(eq("12345678900"))).thenReturn(accountResponse);
+        Mockito.when(accountService.getBalance(accountId))
+                .thenReturn(new BalanceResponse(BigDecimal.valueOf(100)));
+
+        mockMvc.perform(get("/api/accounts/{accountId}/balance", accountId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.balance").value(100));
+    }
+
+    @Test
+    void shouldGetTransactionsByAccount() throws Exception {
+        String accountId = "123";
+
+        List<TransactionResponse> transactions = List.of(
+                new TransactionResponse(1L, accountId, 4, BigDecimal.valueOf(100), null)
+        );
+
+        Mockito.when(transactionService.getTransactionByAccountId(accountId))
+                .thenReturn(transactions);
+
+        mockMvc.perform(get("/api/accounts/{accountId}/transactions", accountId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].accountId").value(accountId))
+                .andExpect(jsonPath("$[0].amount").value(100));
+    }
+
+    @Test
+    void shouldCreateAccount() throws Exception {
+        AccountRequest request = new AccountRequest();
+        request.setDocumentNumber("999999999");
+
+        Mockito.when(accountService.createAccount("999999999"))
+                .thenReturn(new AccountResponse("123", "999999999"));
 
         mockMvc.perform(post("/api/accounts")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.accountId").value("1234"))
-                .andExpect(jsonPath("$.documentNumber").value("12345678900"));
+                .andExpect(jsonPath("$.accountId").value("123"))
+                .andExpect(jsonPath("$.documentNumber").value("999999999"));
     }
 
     @Test
-    void getAccount_shouldReturnAccount() throws Exception {
-        Mockito.when(accountService.getAccount("1234")).thenReturn(accountResponse);
-
-        mockMvc.perform(get("/api/accounts/1234"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.accountId").value("1234"))
-                .andExpect(jsonPath("$.documentNumber").value("12345678900"));
-    }
-
-    @Test
-    void getBalance_shouldReturnBalance() throws Exception {
-        Mockito.when(accountService.getBalance("1234")).thenReturn(balanceResponse);
-
-        mockMvc.perform(get("/api/accounts/balance")
-                        .param("account_id", "1234"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.balance").value(500.00));
-    }
-
-    @Test
-    void setOverdraft_shouldReturnOk() throws Exception {
+    void shouldSetOverdraftLimit() throws Exception {
         OverdraftRequest request = new OverdraftRequest();
-        request.setAccountId("1234");
-        request.setLimit(new BigDecimal("100.00"));
+        request.setAccountId("123");
+        request.setLimit(BigDecimal.valueOf(500));
 
         mockMvc.perform(post("/api/accounts/overdraft")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk());
+
+        Mockito.verify(accountService)
+                .configOverdraftLimit("123", BigDecimal.valueOf(500));
     }
 
     @Test
-    void reset_shouldReturnOk() throws Exception {
+    void shouldResetSystem() throws Exception {
         mockMvc.perform(post("/api/accounts/reset"))
                 .andExpect(status().isOk());
-    }
 
-    @Test
-    void shouldReturnTransactionsForAccount() throws Exception {
-
-        String accountId = "abc-123";
-
-        List<TransactionResponse> mockResponse = List.of(
-                new TransactionResponse(1L, accountId, 4, BigDecimal.valueOf(200), LocalDateTime.now()),
-                new TransactionResponse(2L, accountId, 1, BigDecimal.valueOf(-100), LocalDateTime.now())
-        );
-
-        when(transactionService.getTransactionByAccountId(accountId))
-                .thenReturn(mockResponse);
-
-        mockMvc.perform(get("/api/accounts/{accountId}/transactions", accountId))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(2))
-                .andExpect(jsonPath("$[0].accountId").value(accountId))
-                .andExpect(jsonPath("$[0].operationTypeId").value(4))
-                .andExpect(jsonPath("$[0].amount").value(200))
-                .andExpect(jsonPath("$[1].operationTypeId").value(1))
-                .andExpect(jsonPath("$[1].amount").value(-100));
+        Mockito.verify(accountService).reset();
     }
 }

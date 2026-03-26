@@ -6,7 +6,6 @@ import com.example.coreBanking.exception.*;
 import com.example.coreBanking.model.Account;
 import com.example.coreBanking.repository.AccountRepository;
 import com.example.coreBanking.repository.TransactionRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.util.Map;
@@ -21,20 +20,29 @@ public class AccountService {
 
     private final Map<String, String> documentToAccount = new ConcurrentHashMap<>();
 
-    @Autowired
-    public AccountService(AccountRepository accountRepository, TransactionRepository transactionRepository) {
+    public AccountService(AccountRepository accountRepository,
+                          TransactionRepository transactionRepository) {
         this.accountRepository = accountRepository;
         this.transactionRepository = transactionRepository;
     }
 
     public AccountResponse createAccount(String documentNumber) {
+
+        if (documentNumber == null || documentNumber.isBlank()) {
+            throw new IllegalArgumentException("Invalid document");
+        }
+
         if (documentToAccount.containsKey(documentNumber)) {
             throw new AccountAlreadyExistException("Document already has an account");
         }
+
         String accountId = UUID.randomUUID().toString();
+
         Account account = new Account(accountId, BigDecimal.ZERO);
+
         accountRepository.save(account);
         documentToAccount.put(documentNumber, accountId);
+
         return new AccountResponse(accountId, documentNumber);
     }
 
@@ -47,13 +55,29 @@ public class AccountService {
                 .map(Map.Entry::getKey)
                 .findFirst()
                 .orElse("UNKNOWN");
+
         return new AccountResponse(account.getId(), document);
     }
 
     public BalanceResponse getBalance(String accountId) {
-        return accountRepository.findById(accountId)
-                .map(account -> new BalanceResponse(account.getBalance()))
+        Account account = accountRepository.findById(accountId)
                 .orElseThrow(() -> new AccountNotFoundException("Account not found"));
+
+        return new BalanceResponse(account.getBalance());
+    }
+
+    public void configOverdraftLimit(String accountId, BigDecimal limit) {
+
+        if (limit == null || limit.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("Invalid overdraft limit");
+        }
+
+        Account account = accountRepository.findById(accountId)
+                .orElseThrow(() -> new AccountNotFoundException("Account not found"));
+
+        account.setOverdraftLimit(limit);
+
+        accountRepository.save(account);
     }
 
     public void reset() {
@@ -61,11 +85,4 @@ public class AccountService {
         transactionRepository.reset();
         documentToAccount.clear();
     }
-
-    public void configOverdraftLimit(String accountId, BigDecimal limit) {
-        Account account = accountRepository.findById(accountId).orElseThrow(() -> new AccountNotFoundException("Account not found"));
-        account.setOverdraftLimit(limit);
-        accountRepository.save(account);
-    }
-
 }

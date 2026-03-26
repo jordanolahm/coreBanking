@@ -4,25 +4,26 @@ import com.example.coreBanking.model.Transaction;
 import org.springframework.stereotype.Repository;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public class TransactionRepository {
 
-    private final List<Transaction> transactions = new ArrayList<>();
+    private final List<Transaction> transactions = Collections.synchronizedList(new ArrayList<>());
 
     public Transaction save(Transaction transaction) {
         transactions.add(transaction);
         return transaction;
     }
 
-    public Transaction findTransactionById(Long transactionId) {
-        for(Transaction t : transactions) {
-            if(t.getTransactionId() == transactionId) {
-                return t;
-            }
+    public Optional<Transaction> findTransactionById(Long transactionId) {
+        synchronized (transactions) {
+            return transactions.stream()
+                    .filter(t -> t.getTransactionId() == transactionId)
+                    .findFirst();
         }
-        return null;
     }
 
     public List<Transaction> findAllOperationTypeById( int operationTypeId) {
@@ -54,7 +55,6 @@ public class TransactionRepository {
         List<Transaction> listTransactionsInDate = new ArrayList<>();
         for(Transaction t : transactions) {
             LocalDateTime transactionDate = t.getEventDate();
-            //problems in compare with atributes year, month, day when comparing LocalDateTime
             if (transactionDate.toLocalDate().equals(date.toLocalDate())) {
                 listTransactionsInDate.add(t);
             }
@@ -64,17 +64,22 @@ public class TransactionRepository {
     }
 
     public List<Transaction> findByAccountId(String accountId) {
-        if (accountId == null) {
-            throw new IllegalArgumentException("AccountId cannot be null");
+        synchronized (transactions) {
+            return transactions.stream()
+                    .filter(t -> t.getAccountId().equals(accountId))
+                    .toList();
         }
-        return transactions.stream().filter(t -> t.getAccountId().equals(accountId)).toList();
     }
 
     public List<Transaction> findAll() {
-        return transactions;
+        synchronized (transactions) {
+            return new ArrayList<>(transactions);
+        }
     }
 
     public void reset() {
-        transactions.clear();
+        synchronized (transactions) {
+            transactions.clear();
+        }
     }
 }
