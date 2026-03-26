@@ -8,143 +8,152 @@ import com.example.coreBanking.model.Account;
 import com.example.coreBanking.repository.AccountRepository;
 import com.example.coreBanking.repository.TransactionRepository;
 import com.example.coreBanking.service.AccountService;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-import java.lang.reflect.Field;
+import org.mockito.junit.jupiter.MockitoExtension;
 import java.math.BigDecimal;
-import java.util.Map;
 import java.util.Optional;
-import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+@ExtendWith(MockitoExtension.class)
 class AccountServiceTest {
 
     @Mock
     private AccountRepository accountRepository;
 
     @Mock
-    TransactionRepository transactionRepository;
+    private TransactionRepository transactionRepository;
 
     @InjectMocks
     private AccountService accountService;
 
-    @BeforeEach
-    void setUp() {
-        MockitoAnnotations.openMocks(this);
-    }
-
     @Test
-    void testCreateAccount_Success() {
-        String documentNumber = "12345678900";
+    void shouldCreateAccountSuccessfully() {
 
-        AccountResponse response = accountService.createAccount(documentNumber);
+        String document = "123456789";
+
+        AccountResponse response = accountService.createAccount(document);
 
         assertNotNull(response.getAccountId());
-        assertEquals(documentNumber, response.getDocumentNumber());
-        verify(accountRepository, times(1)).save(any(Account.class));
+        assertEquals(document, response.getDocumentNumber());
+
+        verify(accountRepository).save(any(Account.class));
     }
 
     @Test
-    void testCreateAccount_AlreadyExists() {
-        String documentNumber = "12345678900";
+    void shouldThrowWhenDocumentIsInvalid() {
 
-        accountService.createAccount(documentNumber);
+        assertThrows(IllegalArgumentException.class,
+                () -> accountService.createAccount(null));
 
-        Exception exception = assertThrows(AccountAlreadyExistException.class, () -> {
-            accountService.createAccount(documentNumber);
-        });
-
-        assertEquals("Document already has an account", exception.getMessage());
+        assertThrows(IllegalArgumentException.class,
+                () -> accountService.createAccount(""));
     }
 
     @Test
-    void testGetAccount_Success() {
-        String accountId = UUID.randomUUID().toString();
+    void shouldThrowWhenAccountAlreadyExists() {
+
+        String document = "123";
+
+        accountService.createAccount(document);
+
+        assertThrows(AccountAlreadyExistException.class,
+                () -> accountService.createAccount(document));
+    }
+
+    @Test
+    void shouldGetAccountSuccessfully() {
+
+        String accountId = "acc-1";
+        String document = "123";
+
         Account account = new Account(accountId, BigDecimal.ZERO);
-        accountService.createAccount("doc123"); // adiciona no map
+
+        accountService.createAccount(document);
+
         when(accountRepository.findById(accountId)).thenReturn(Optional.of(account));
 
         AccountResponse response = accountService.getAccount(accountId);
+
         assertEquals(accountId, response.getAccountId());
     }
 
     @Test
-    void testGetAccount_NotFound() {
-        String accountId = "non-existent";
-        when(accountRepository.findById(accountId)).thenReturn(Optional.empty());
+    void shouldThrowWhenAccountNotFound() {
 
-        assertThrows(AccountNotFoundException.class, () -> accountService.getAccount(accountId));
+        when(accountRepository.findById("invalid")).thenReturn(Optional.empty());
+
+        assertThrows(AccountNotFoundException.class,
+                () -> accountService.getAccount("invalid"));
     }
 
     @Test
-    void testGetBalance_Success() {
-        String accountId = UUID.randomUUID().toString();
-        Account account = new Account(accountId, BigDecimal.valueOf(100));
+    void shouldReturnBalanceSuccessfully() {
+
+        String accountId = "acc-1";
+
+        Account account = new Account(accountId, BigDecimal.valueOf(200));
+
         when(accountRepository.findById(accountId)).thenReturn(Optional.of(account));
 
         BalanceResponse response = accountService.getBalance(accountId);
-        assertEquals(BigDecimal.valueOf(100), response.getBalance());
+
+        assertEquals(BigDecimal.valueOf(200), response.getBalance());
     }
 
     @Test
-    void testGetBalance_NotFound() {
-        String accountId = "non-existent";
-        when(accountRepository.findById(accountId)).thenReturn(Optional.empty());
+    void shouldThrowWhenBalanceAccountNotFound() {
 
-        assertThrows(AccountNotFoundException.class, () -> accountService.getBalance(accountId));
-    }
+        when(accountRepository.findById("invalid")).thenReturn(Optional.empty());
 
-    @BeforeEach
-    void setup() throws Exception {
-        accountRepository = mock(AccountRepository.class);
-        transactionRepository = mock(TransactionRepository.class);
-
-        accountService = new AccountService(accountRepository , transactionRepository);
-
-        Field field = AccountService.class.getDeclaredField("transactionRepository");
-        field.setAccessible(true);
-        field.set(accountService, transactionRepository);
+        assertThrows(AccountNotFoundException.class,
+                () -> accountService.getBalance("invalid"));
     }
 
     @Test
-    void shouldResetSystemSuccessfully() throws Exception {
+    void shouldSetOverdraftLimitSuccessfully() {
 
-        Field mapField = AccountService.class.getDeclaredField("documentToAccount");
-        mapField.setAccessible(true);
-        Map<String, String> map = (Map<String, String>) mapField.get(accountService);
-        map.put("123", "acc-1");
+        String accountId = "acc-1";
+
+        Account account = new Account(accountId, BigDecimal.ZERO);
+
+        when(accountRepository.findById(accountId)).thenReturn(Optional.of(account));
+
+        accountService.configOverdraftLimit(accountId, BigDecimal.valueOf(500));
+
+        assertEquals(BigDecimal.valueOf(500), account.getOverdraftLimit());
+
+        verify(accountRepository).save(account);
+    }
+
+    @Test
+    void shouldThrowWhenOverdraftInvalid() {
+
+        assertThrows(IllegalArgumentException.class,
+                () -> accountService.configOverdraftLimit("acc-1", null));
+
+        assertThrows(IllegalArgumentException.class,
+                () -> accountService.configOverdraftLimit("acc-1", BigDecimal.valueOf(-10)));
+    }
+
+    @Test
+    void shouldThrowWhenSettingOverdraftForNonexistentAccount() {
+
+        when(accountRepository.findById("invalid")).thenReturn(Optional.empty());
+
+        assertThrows(AccountNotFoundException.class,
+                () -> accountService.configOverdraftLimit("invalid", BigDecimal.valueOf(100)));
+    }
+
+    @Test
+    void shouldResetSystem() {
 
         accountService.reset();
 
-        verify(accountRepository, times(1)).reset();
-        verify(transactionRepository, times(1)).reset();
-
-        assert map.isEmpty();
-    }
-
-    @Test
-    void testConfigOverdraftLimit_Success() {
-        String accountId = UUID.randomUUID().toString();
-        Account account = new Account(accountId, BigDecimal.ZERO);
-        when(accountRepository.findById(accountId)).thenReturn(Optional.of(account));
-
-        BigDecimal limit = BigDecimal.valueOf(500);
-        accountService.configOverdraftLimit(accountId, limit);
-
-        assertEquals(limit, account.getOverdraftLimit());
-        verify(accountRepository, times(1)).save(account);
-    }
-
-    @Test
-    void testConfigOverdraftLimit_AccountNotFound() {
-        String accountId = "non-existent";
-        when(accountRepository.findById(accountId)).thenReturn(Optional.empty());
-
-        BigDecimal limit = BigDecimal.valueOf(500);
-        assertThrows(AccountNotFoundException.class, () -> accountService.configOverdraftLimit(accountId, limit));
+        verify(accountRepository).reset();
+        verify(transactionRepository).reset();
     }
 }

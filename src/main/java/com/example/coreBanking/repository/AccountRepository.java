@@ -8,7 +8,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Repository
 public class AccountRepository {
-    private Map<String, Account> accounts = new ConcurrentHashMap<>();
+
+    private final Map<String, Account> accounts = new ConcurrentHashMap<>();
 
     public Optional<Account> findById(String id) {
         return Optional.ofNullable(accounts.get(id));
