@@ -25,6 +25,8 @@ public class TransactionService {
     private final TransactionRepository transactionRepository;
     private final AccountRepository accountRepository;
     private final LockManager lockManager;
+    private final Set<String> countBlocker = Set.of("123", "1234", "12345");
+
 
     public TransactionService(TransactionRepository transactionRepository,
                               AccountRepository accountRepository, LockManager lockManager) {
@@ -38,11 +40,20 @@ public class TransactionService {
         if (request.getType() == null) {
             throw new IllegalArgumentException("Transaction type is required");
         }
-/*
-        //if(request.getID() === arrayFiltrado[]) {
-              throw new ExceptionBlock("Id account esta na block list")         
-              break; 
-        } */
+      /*      
+        1 - Construimos a lista estatica das contas <string, Account>; 
+        2 - Validar se a conta dada pelo EventRequest request.getOrigin() é igual ao countBlocker(); 
+        3 - Se a conta estiver na lista blocker, handleTransaction lanca exception. 
+        4 - Se nao tiver, ele procede com a operacao.. 
+        */
+        
+        if(request.getOrigin() != countBlocker.contains(request.getOrigin())) {
+              throw new Exception("Origin account is blocker");         
+        }
+
+        if(request.getDestination() != countBlocker.contains(request.getDestination())) {
+            throw new Exception("Destination account is blocker");
+        }
 
         return switch (request.getType()) {
             case DEPOSIT -> deposit(request);
