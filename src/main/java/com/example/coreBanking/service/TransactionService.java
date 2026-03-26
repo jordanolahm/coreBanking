@@ -34,7 +34,7 @@ public class TransactionService {
         this.accountRepository = accountRepository;
         this.lockManager = lockManager;
     }
-
+    //123 -> Eventrequest -> request.getOrigin() -> "123"
     public EventResponse handleTransaction(EventRequest request) {
    
         if (request.getType() == null) {
