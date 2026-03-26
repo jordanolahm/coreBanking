@@ -35,6 +35,8 @@ public class TransactionService {
         this.lockManager = lockManager;
     }
     //123 -> Eventrequest -> request.getOrigin() -> "123"
+     
+    
     public EventResponse handleTransaction(EventRequest request) {
    
         if (request.getType() == null) {
@@ -46,12 +48,13 @@ public class TransactionService {
         3 - Se a conta estiver na lista blocker, handleTransaction lanca exception. 
         4 - Se nao tiver, ele procede com a operacao.. 
         */
-        
-        if(request.getOrigin() != countBlocker.contains(request.getOrigin())) {
+        // "123" -> ele nao pode ser nulo e ele tem que ser validado na lista de elementos. 
+        // "123" -> block account
+        if(request.getOrigin() != null && countBlocker.contains(request.getOrigin())) {
               throw new Exception("Origin account is blocker");         
         }
 
-        if(request.getDestination() != countBlocker.contains(request.getDestination())) {
+        if(request.getDestination() != null && countBlocker.contains(request.getDestination())) {
             throw new Exception("Destination account is blocker");
         }
 
